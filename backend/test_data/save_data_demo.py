@@ -20,7 +20,7 @@ def extract_features_from_video(
     blink_csv_path: str,
     fps: int = 15,
     blink_thresh: float = 0.25
-) -> Tuple[str, str]:
+) -> Tuple[str, str, float]:
 
     # 초기화
     face_cascade = cv2.CascadeClassifier(
@@ -44,6 +44,12 @@ def extract_features_from_video(
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise FileNotFoundError(f"영상 파일을 열 수 없습니다: {video_path}")
+    
+    # 실제 FPS 가져오기
+    real_fps = cap.get(cv2.CAP_PROP_FPS)
+    if real_fps <= 0:
+        real_fps = fps  # 실패 시 기본값 사용
+    print(f"Video FPS: {real_fps}")
 
     rgb_means: List[np.ndarray] = []
     blink_flags: List[int] = []
@@ -87,7 +93,7 @@ def extract_features_from_video(
     np.savetxt(rgb_csv_path, rgb_arr, fmt="%.5f", delimiter="\t")
     np.savetxt(blink_csv_path, blink_arr, fmt="%d", delimiter="\t")
 
-    return rgb_csv_path, blink_csv_path
+    return rgb_csv_path, blink_csv_path, real_fps
 
 
 # 단독 실행 시 CLI 기능

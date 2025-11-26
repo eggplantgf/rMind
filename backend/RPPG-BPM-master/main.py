@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from scipy.interpolate import interp1d
-from typing import Tuple
+from typing import Tuple, List
 
 
 # RPPG-BPM 모듈 경로 추가
@@ -29,16 +29,21 @@ def analyze_and_plot(
     bpm_img_path: str,
     blink_img_path: str,
     fps: int = 15,
-) -> Tuple[str, str]:
+) -> Tuple[str, str, Tuple[List[float], List[float]], Tuple[List[float], List[float]]]:
     """
     개선된 rPPG 분석 함수
     새로운 고급 알고리즘을 먼저 시도하고, 실패 시 기존 방법으로 폴백
+    Returns:
+        (bpm_img_path, blink_img_path, bpm_data, blink_data)
+        bpm_data: (time_axis, bpm_values)
+        blink_data: (time_axis, blink_values)
     """
     
     print(f"🔄 rPPG 분석 시작 (고급 알고리즘 우선)")
     
     try:
         # 새로운 고급 rPPG 분석기 시도
+        # advanced_analyze_and_plot도 데이터를 반환하도록 수정되었다고 가정
         result = advanced_analyze_and_plot(
             rgb_csv_path, blink_csv_path, bpm_img_path, blink_img_path, fps
         )
@@ -61,7 +66,7 @@ def _legacy_analyze_and_plot(
     bpm_img_path: str,
     blink_img_path: str,
     fps: int = 15,
-) -> Tuple[str, str]:
+) -> Tuple[str, str, Tuple[List[float], List[float]], Tuple[List[float], List[float]]]:
     """
     기존 rPPG 분석 방법 (폴백용)
     """
@@ -103,16 +108,20 @@ def _legacy_analyze_and_plot(
     # BPM 시계열
     bpm_per_second = []
     time_bpm = []
-    window_size = 5 * fps  # 5초 윈도우로 줄임 (더 민감하게)
+    window_size = int(5 * fps)  # 5초 윈도우 (정수)
+    step_size = int(fps)        # 1초 간격 (정수)
     
-    for start in range(0, len(signal_pos) - window_size, fps):  # 1초씩 이동
+    for start in range(0, len(signal_pos) - window_size, step_size):  # 1초씩 이동
         window = signal_pos[start : start + window_size]
         bpm = fourier_analysis(window, fps) * 60
         if 40 <= bpm <= 180:  # 이상치 제거
             bpm_per_second.append(bpm)
-            time_bpm.append(start // fps)  # 1초 단위
+            time_bpm.append(start / fps)  # 1초 단위
 
     # 그래프
+    # [CODE_REVIEW] BPM 그래프 생성 위치
+    # x축: time_bpm (초 단위, 21프레임 이후 기준)
+    # y축: bpm_per_second (분당 심박수)
     plt.figure(figsize=(12, 5), dpi=120)
     plt.plot(time_bpm, bpm_per_second, color='#007AFF', linewidth=2.2, label='Heart Rate', alpha=0.9)
     plt.axhspan(60, 100, color='lightgreen', alpha=0.2, label='Normal range')
@@ -130,11 +139,20 @@ def _legacy_analyze_and_plot(
     plt.close()
 
     # 그래프
+    # [CODE_REVIEW] Blink 그래프 생성 위치
+    # x축: time_blink (초 단위, 21프레임 이후 기준)
+    # y축: blink_counts (초당 눈깜박임 횟수)
     blink_counts, time_blink = [], []
-    for start in range(0, len(blink_trim), fps):
-        window = blink_trim[start : start + fps]
+    blink_step = int(fps)
+    
+    for start in range(0, len(blink_trim), blink_step):
+        window_end = start + blink_step
+        if window_end > len(blink_trim):
+            break
+            
+        window = blink_trim[start : window_end]
         blink_counts.append(np.sum(window))
-        time_blink.append(start // fps)  # 1초 단위
+        time_blink.append(start / fps)  # 1초 단위
 
     plt.figure(figsize=(12, 5), dpi=120)
     plt.plot(time_blink, blink_counts, color='#34C759', linewidth=2.2, label='Blink Rate', alpha=0.9)
@@ -156,7 +174,7 @@ def _legacy_analyze_and_plot(
     plt.savefig(blink_img_path, dpi=300)
     plt.close()
 
-    return bpm_img_path, blink_img_path
+    return bpm_img_path, blink_img_path, (time_bpm, bpm_per_second), (time_blink, blink_counts)
 
 
 # 단독 실행 시 CLI 기능

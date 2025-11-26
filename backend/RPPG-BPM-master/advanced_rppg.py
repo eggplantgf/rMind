@@ -299,8 +299,8 @@ class AdvancedRPPGAnalyzer:
     
     def calculate_windowed_bpm(self, signal):
         """윈도우 기반 시간별 BPM 계산"""
-        window_size = 5 * self.fps  # 5초 윈도우
-        step_size = self.fps  # 1초씩 이동
+        window_size = int(5 * self.fps)  # 5초 윈도우 (정수 변환)
+        step_size = int(self.fps)  # 1초씩 이동 (정수 변환)
         
         time_bpms = []
         
@@ -321,8 +321,11 @@ def advanced_analyze_and_plot(
     bpm_img_path: str,
     blink_img_path: str,
     fps: int = 15,
-) -> Tuple[str, str]:
-    """개선된 분석 및 시각화 함수 - 기존 인터페이스 유지"""
+) -> Tuple[str, str, Tuple[List[float], List[float]], Tuple[List[float], List[float]]]:
+    """개선된 분석 및 시각화 함수 - 기존 인터페이스 유지
+    Returns:
+        (bpm_img_path, blink_img_path, bpm_data, blink_data)
+    """
     
     # 스타일 설정
     import matplotlib as mpl
@@ -380,9 +383,10 @@ def advanced_analyze_and_plot(
         # 폴백: 윈도우 기반 계산
         bpm_per_second = []
         time_bpm = []
-        window_size = 5 * fps  # 5초 윈도우
+        window_size = int(5 * fps)  # 5초 윈도우
+        step_size = int(fps)        # 1초 간격
         
-        for start in range(0, len(rppg_signal) - window_size, fps):  # 1초씩 이동
+        for start in range(0, len(rppg_signal) - window_size, step_size):  # 1초씩 이동
             window = rppg_signal[start : start + window_size]
             bpm = analyzer.calculate_fft_bpm(window)
             if 40 <= bpm <= 180:  # 이상치 제거
@@ -422,8 +426,14 @@ def advanced_analyze_and_plot(
 
     # 눈 깜빡임 그래프 (기존 방식 유지)
     blink_counts, time_blink = [], []
-    for start in range(0, len(blink_trim), fps):
-        window = blink_trim[start : start + fps]
+    blink_step = int(fps)  # 1초 간격 (정수)
+    
+    for start in range(0, len(blink_trim), blink_step):
+        window_end = start + blink_step
+        if window_end > len(blink_trim):
+            break
+            
+        window = blink_trim[start : window_end]
         blink_counts.append(np.sum(window))
         time_blink.append(start / fps)  # 정확한 시간 계산
 
@@ -460,4 +470,4 @@ def advanced_analyze_and_plot(
     plt.savefig(blink_img_path, dpi=300)
     plt.close()
 
-    return bpm_img_path, blink_img_path
+    return bpm_img_path, blink_img_path, (time_bpm, bpm_per_second), (time_blink, blink_counts)
