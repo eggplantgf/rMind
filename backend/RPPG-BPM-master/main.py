@@ -127,9 +127,10 @@ def _legacy_analyze_and_plot(
     plt.axhspan(60, 100, color='lightgreen', alpha=0.2, label='Normal range')
     
     # 스타일
-    plt.title("Heart Rate Over Time (Legacy)", pad=15)
-    plt.xlabel("Time (seconds)")
-    plt.ylabel("Estimated BPM")
+    # 제목 및 축 라벨 제거
+    plt.title("")
+    plt.xlabel("")
+    plt.ylabel("")
     if len(time_bpm) > 0:
         plt.xticks(range(0, max(time_bpm)+1, max(1, len(time_bpm)//10)))
     plt.grid(axis='y', linestyle='--', alpha=0.3)
@@ -163,9 +164,10 @@ def _legacy_analyze_and_plot(
         plt.axhline(y=avg_blink, color='gray', linestyle='--', linewidth=1.4, label='Average')
     
     # 스타일
-    plt.title("Blink Frequency Over Time", pad=15)
-    plt.xlabel("Time (seconds)")
-    plt.ylabel("Blinks / sec")
+    # 제목 및 축 라벨 제거
+    plt.title("")
+    plt.xlabel("")
+    plt.ylabel("")
     if len(time_blink) > 0:
         plt.xticks(range(0, max(time_blink)+1, max(1, len(time_blink)//10)))
     plt.grid(axis='y', linestyle='--', alpha=0.3)

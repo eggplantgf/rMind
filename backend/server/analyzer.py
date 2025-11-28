@@ -8,6 +8,8 @@ import dlib
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from matplotlib.patches import Patch
+from scipy.interpolate import interp1d
 from pathlib import Path
 from types import ModuleType
 from typing import Callable
@@ -141,9 +143,10 @@ def analyze_motion(
     plt.axhline(y=stability_threshold, color='gray', linestyle='--', linewidth=1.4, label='Threshold')
 
     # 스타일
-    plt.title("Motion Intensity Over Time", pad=15)
-    plt.xlabel("Time (seconds)")
-    plt.ylabel("Avg Movement Intensity")
+    # 제목 및 축 라벨 제거
+    plt.title("")
+    plt.xlabel("")
+    plt.ylabel("")
     if len(x) > 0:
         plt.xticks(x[::max(1, len(x)//10)])  # 최대 10개 눈금만 표시
     plt.grid(axis='y', linestyle='--', alpha=0.3)
@@ -163,8 +166,10 @@ def create_combined_plot(
 ) -> str:
     """
     3가지 지표(BPM, Blink, Motion)를 하나의 그래프에 겹쳐서 그린다.
-    각 지표는 0~1 사이로 정규화(Normalization)하여 스케일을 맞춘다.
-    모두 동일한 회색 + 높은 투명도로 디자인한다.
+    긴장도 분석 로직을 포함하여 구간별로 색상을 칠한다.
+    - Stable: 투명
+    - Moderate Tension: 노란색 (Yellow)
+    - High Tension: 붉은색 (Red)
     """
     
     # 데이터 언패킹
@@ -172,36 +177,136 @@ def create_combined_plot(
     t_blink, y_blink = blink_data
     t_motion, y_motion = motion_data
     
-    # 정규화 함수
-    def normalize(data):
-        arr = np.array(data)
-        if len(arr) == 0:
-            return arr
+    # 1. 공통 시간축 생성 (최대 시간 기준, 1초 단위)
+    max_time = 0
+    if len(t_bpm) > 0: max_time = max(max_time, t_bpm[-1])
+    if len(t_blink) > 0: max_time = max(max_time, t_blink[-1])
+    if len(t_motion) > 0: max_time = max(max_time, t_motion[-1])
+    
+    if max_time == 0:
+        # 데이터가 없는 경우 빈 그래프 저장
+        plt.figure()
+        plt.savefig(combined_img_path)
+        plt.close()
+        return combined_img_path
+
+    common_times = np.arange(0, int(max_time) + 1, 1.0)
+    
+    # 2. 데이터 보간 (Interpolation) - 공통 시간축에 맞춤
+    def interpolate_data(times, values, target_times):
+        if len(times) < 2:
+            return np.zeros_like(target_times)
+        f = interp1d(times, values, kind='linear', bounds_error=False, fill_value=(values[0], values[-1]))
+        return f(target_times)
+
+    bpm_interp = interpolate_data(t_bpm, y_bpm, common_times)
+    blink_interp = interpolate_data(t_blink, y_blink, common_times)
+    motion_interp = interpolate_data(t_motion, y_motion, common_times)
+    
+    # 3. 긴장도 임계값 설정
+    # BPM: 100 이상 -> Moderate
+    bpm_threshold = 100
+    
+    # Blink: 평균 + 0.5 * 표준편차 -> Moderate
+    blink_mean = np.mean(y_blink) if len(y_blink) > 0 else 0
+    blink_std = np.std(y_blink) if len(y_blink) > 0 else 0
+    blink_threshold = blink_mean + (0.5 * blink_std)
+    
+    # 모션: 50.0 이상 -> High (절대적 기준)
+    motion_threshold_high = 50.0
+    
+    # 4. 긴장도 분석 (초 단위)
+    # Level 0: Stable, 1: Moderate, 2: High
+    tension_levels = []
+    
+    for i in range(len(common_times)):
+        val_bpm = bpm_interp[i]
+        val_blink = blink_interp[i]
+        val_motion = motion_interp[i]
+        
+        is_motion_high = val_motion >= motion_threshold_high
+        is_bpm_mod = val_bpm >= bpm_threshold
+        is_blink_mod = val_blink >= blink_threshold
+        
+        if is_motion_high:
+            level = 2 # High
+        elif is_bpm_mod and is_blink_mod:
+            level = 2 # High
+        elif is_bpm_mod or is_blink_mod:
+            level = 1 # Moderate
+        else:
+            level = 0 # Stable
+            
+        tension_levels.append(level)
+    
+    # 5. 정규화 (시각화용)
+    def normalize(arr):
         mn, mx = np.min(arr), np.max(arr)
-        if mx - mn == 0:
-            return np.zeros_like(arr)
+        if mx - mn == 0: return np.zeros_like(arr)
         return (arr - mn) / (mx - mn)
 
-    norm_bpm = normalize(y_bpm)
-    norm_blink = normalize(y_blink)
-    norm_motion = normalize(y_motion)
+    norm_bpm = normalize(bpm_interp)
+    norm_blink = normalize(blink_interp)
+    norm_motion = normalize(motion_interp)
 
+    # 6. 그래프 그리기
     plt.figure(figsize=(12, 5), dpi=120)
     
-    # Plotting
-    # 회색, 투명도 높게 (alpha=0.5 정도)
-    if len(t_bpm) > 0:
-        plt.plot(t_bpm, norm_bpm, color='gray', alpha=0.5, linewidth=2, label='Heart Rate (Norm)')
-    if len(t_blink) > 0:
-        plt.plot(t_blink, norm_blink, color='gray', alpha=0.5, linewidth=2, linestyle='--', label='Blink Rate (Norm)')
-    if len(t_motion) > 0:
-        plt.plot(t_motion, norm_motion, color='gray', alpha=0.5, linewidth=2, linestyle=':', label='Motion (Norm)')
+    # 한글 폰트 설정 (Windows: Malgun Gothic, Mac: AppleGothic, Linux: NanumGothic)
+    import platform
+    system_name = platform.system()
+    if system_name == "Windows":
+        plt.rc('font', family='Malgun Gothic')
+    elif system_name == "Darwin":
+        plt.rc('font', family='AppleGothic')
+    else:
+        plt.rc('font', family='NanumGothic')
+    plt.rcParams['axes.unicode_minus'] = False # 마이너스 기호 깨짐 방지
 
-    plt.title("Combined Analysis (Normalized)", pad=15)
-    plt.xlabel("Time (seconds)")
-    plt.ylabel("Normalized Intensity (0-1)")
-    plt.grid(axis='y', linestyle='--', alpha=0.3)
-    plt.legend(loc='upper right', frameon=False)
+    # 선 그래프 (범례 제외) - 굵기 증가 (linewidth 2.5)
+    plt.plot(common_times, norm_bpm, color='gray', alpha=0.3, linewidth=2.5)
+    plt.plot(common_times, norm_blink, color='gray', alpha=0.3, linewidth=2.5, linestyle='--')
+    plt.plot(common_times, norm_motion, color='gray', alpha=0.3, linewidth=2.5, linestyle=':')
+
+    # 긴장도 구간 표시 (axvspan) - 색상 개선 (Alpha 0.4로 조금 더 진하게)
+    # High: #FF453A (Vivid Red), Moderate: #FFD60A (Vivid Yellow)
+    if len(tension_levels) > 0:
+        current_level = tension_levels[0]
+        start_idx = 0
+        
+        for i in range(1, len(tension_levels)):
+            if tension_levels[i] != current_level:
+                # 이전 구간 그리기
+                if current_level == 2: # High
+                    plt.axvspan(common_times[start_idx], common_times[i], color='#FF453A', alpha=0.4)
+                elif current_level == 1: # Moderate
+                    plt.axvspan(common_times[start_idx], common_times[i], color='#FFD60A', alpha=0.4)
+                
+                current_level = tension_levels[i]
+                start_idx = i
+        
+        # 마지막 구간
+        if current_level == 2:
+            plt.axvspan(common_times[start_idx], common_times[-1], color='#FF453A', alpha=0.4)
+        elif current_level == 1:
+            plt.axvspan(common_times[start_idx], common_times[-1], color='#FFD60A', alpha=0.4)
+
+    # 스타일
+    # 제목 및 축 라벨 제거
+    plt.title("")
+    plt.xlabel("")
+    plt.ylabel("")
+    plt.gca().axes.yaxis.set_visible(False) 
+    
+    # 범례 재정의 (왼쪽 상단, 한글 텍스트)
+    legend_elements = [
+        Patch(facecolor='#FF453A', edgecolor='none', alpha=0.4, label='높은 긴장'),
+        Patch(facecolor='#FFD60A', edgecolor='none', alpha=0.4, label='다소 긴장'),
+        plt.Line2D([0], [0], color='gray', alpha=0.5, lw=2.5, label='생체 신호 (BPM/Blink/Motion)')
+    ]
+    plt.legend(handles=legend_elements, loc='upper left', frameon=True, facecolor='white', framealpha=0.9, edgecolor='#DDDDDD')
+    
+    plt.xlim(0, max_time)
     plt.tight_layout()
     
     plt.savefig(combined_img_path, dpi=300)

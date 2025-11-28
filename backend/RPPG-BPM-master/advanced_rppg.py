@@ -400,9 +400,10 @@ def advanced_analyze_and_plot(
     plt.axhspan(60, 100, color='lightgreen', alpha=0.2, label='Normal range')
     
     # 스타일 및 x축 설정
-    plt.title("Heart Rate Over Time (Advanced rPPG)", pad=15)
-    plt.xlabel("Time (seconds)")
-    plt.ylabel("Estimated BPM")
+    # 제목 및 축 라벨 제거
+    plt.title("")
+    plt.xlabel("")
+    plt.ylabel("")
     
     # 실제 영상 길이에 맞게 x축 설정
     if len(time_bpm) > 0:
@@ -446,9 +447,10 @@ def advanced_analyze_and_plot(
         plt.axhline(y=avg_blink, color='gray', linestyle='--', linewidth=1.4, label='Average')
     
     # 스타일 및 x축 설정
-    plt.title("Blink Frequency Over Time", pad=15)
-    plt.xlabel("Time (seconds)")
-    plt.ylabel("Blinks / sec")
+    # 제목 및 축 라벨 제거
+    plt.title("")
+    plt.xlabel("")
+    plt.ylabel("")
     
     # 실제 영상 길이에 맞게 x축 설정
     if len(time_blink) > 0:
