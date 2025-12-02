@@ -39,6 +39,8 @@ flutter:
     - assets/images/bpm_ex.png
     - assets/images/blink_ex.png
     - assets/images/motion_ex.png
+    - assets/images/overall.png
+    - assets/images/tension_bar.png
 
   fonts:
     - family: poppins
