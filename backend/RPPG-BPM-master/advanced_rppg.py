@@ -420,7 +420,7 @@ def advanced_analyze_and_plot(
         plt.xticks(ticks)
     
     plt.grid(axis='y', linestyle='--', alpha=0.3)
-    plt.legend(loc='upper right', frameon=False)
+    plt.legend(loc='upper left', prop={'size': 18, 'weight': 'bold'}, frameon=False)
     plt.tight_layout()
     plt.savefig(bpm_img_path, dpi=300)
     plt.close()
@@ -467,7 +467,7 @@ def advanced_analyze_and_plot(
         plt.xticks(ticks)
     
     plt.grid(axis='y', linestyle='--', alpha=0.3)
-    plt.legend(loc='upper right', frameon=False)
+    plt.legend(loc='upper left', prop={'size': 18, 'weight': 'bold'}, frameon=False)
     plt.tight_layout()
     plt.savefig(blink_img_path, dpi=300)
     plt.close()

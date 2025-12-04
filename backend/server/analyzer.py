@@ -150,7 +150,7 @@ def analyze_motion(
     if len(x) > 0:
         plt.xticks(x[::max(1, len(x)//10)])  # 최대 10개 눈금만 표시
     plt.grid(axis='y', linestyle='--', alpha=0.3)
-    plt.legend(loc='upper right', frameon=False)
+    plt.legend(loc='upper left', frameon=False)
     plt.tight_layout()
     plt.savefig(motion_img_path, dpi=300)
     plt.close()
@@ -302,7 +302,7 @@ def create_combined_plot(
     legend_elements = [
         Patch(facecolor='#FF453A', edgecolor='none', alpha=0.4, label='높은 긴장'),
         Patch(facecolor='#FFD60A', edgecolor='none', alpha=0.4, label='다소 긴장'),
-        plt.Line2D([0], [0], color='gray', alpha=0.5, lw=2.5, label='생체 신호 (BPM/Blink/Motion)')
+        plt.Line2D([0], [0], color='gray', alpha=0.5, lw=2.5, label='생체 신호')
     ]
     plt.legend(handles=legend_elements, loc='upper left', frameon=True, facecolor='white', framealpha=0.9, edgecolor='#DDDDDD')
     

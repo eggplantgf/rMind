@@ -7,7 +7,7 @@ import os
 
 VIDEO_PATH = 'test_30.mp4'
 OUTPUT_PNG = 'output/motion_smooth_plot.png'
-STABILITY_THRESHOLD = 2.0
+STABILITY_THRESHOLD = 50.0
 SECOND_INTERVAL = 1
 
 # 폰트 및 그래프 설정
@@ -88,7 +88,7 @@ plt.xlabel("Time (seconds)")
 plt.ylabel("Avg Movement Intensity")
 plt.xticks(x)
 plt.grid(axis='y', linestyle='--', alpha=0.3)
-plt.legend(loc='upper right', frameon=False)
+plt.legend(loc='upper left', prop={'size': 18, 'weight': 'bold'}, frameon=False)
 plt.tight_layout()
 plt.savefig(OUTPUT_PNG, dpi=300)
 

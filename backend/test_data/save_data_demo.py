@@ -80,6 +80,14 @@ def extract_features_from_video(
 
             ear = (_eye_aspect_ratio(left_eye) + _eye_aspect_ratio(right_eye)) / 2.0
             blink_flags.append(1 if ear < blink_thresh else 0)
+        else:
+            # 얼굴 감지 실패 시 프레임 싱크 유지를 위해 데이터 채움
+            if rgb_means:
+                rgb_means.append(rgb_means[-1])
+            else:
+                rgb_means.append(np.array([0.0, 0.0, 0.0]))
+            
+            blink_flags.append(0)  # 감지 안됨 = 눈 깜빡임 없음으로 처리
 
     cap.release()
 

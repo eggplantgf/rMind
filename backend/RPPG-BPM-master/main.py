@@ -134,7 +134,7 @@ def _legacy_analyze_and_plot(
     if len(time_bpm) > 0:
         plt.xticks(range(0, max(time_bpm)+1, max(1, len(time_bpm)//10)))
     plt.grid(axis='y', linestyle='--', alpha=0.3)
-    plt.legend(loc='upper right', frameon=False)
+    plt.legend(loc='upper left', prop={'size': 18, 'weight': 'bold'}, frameon=False)
     plt.tight_layout()
     plt.savefig(bpm_img_path, dpi=300)
     plt.close()
@@ -171,7 +171,7 @@ def _legacy_analyze_and_plot(
     if len(time_blink) > 0:
         plt.xticks(range(0, max(time_blink)+1, max(1, len(time_blink)//10)))
     plt.grid(axis='y', linestyle='--', alpha=0.3)
-    plt.legend(loc='upper right', frameon=False)
+    plt.legend(loc='upper left', prop={'size': 18, 'weight': 'bold'}, frameon=False)
     plt.tight_layout()
     plt.savefig(blink_img_path, dpi=300)
     plt.close()
